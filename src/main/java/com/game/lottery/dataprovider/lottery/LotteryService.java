@@ -7,17 +7,20 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LotteryService implements LotteryCRUD {
 
     private final List<Ticket> tickets = new ArrayList<>();
+
+    private final AtomicInteger atomicInteger = new AtomicInteger(1);
 
     public LotteryService() {
     }
 
     @Override
     public Mono<Ticket> createTicket(List<Line> lines) {
-        Ticket ticket = new Ticket(UUID.randomUUID().toString(), lines);
+        Ticket ticket = new Ticket(String.valueOf(atomicInteger.getAndIncrement()), lines);
         tickets.add(ticket);
         return Mono.just(ticket);
     }

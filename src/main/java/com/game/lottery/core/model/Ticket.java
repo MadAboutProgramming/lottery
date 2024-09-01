@@ -1,11 +1,15 @@
 package com.game.lottery.core.model;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
 @Getter
+@EqualsAndHashCode
+@ToString
 public class Ticket {
     private final String id;
     private final List<Line> lines;

@@ -2,36 +2,35 @@ package com.game.lottery.entrypoint;
 
 import com.game.lottery.core.model.Line;
 import com.game.lottery.core.model.Ticket;
-import com.game.lottery.dataprovider.lottery.LotteryService;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.Mockito.when;
-
 @RunWith(SpringRunner.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class LotteryControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    private LotteryService lotteryService;
-
     @Test
+    @Order(1)
     void createTicket() {
-        List<Line> request = List.of(
-                new Line(new int[]{0, 1, 1}),
-                new Line(new int[]{0, 2, 2})
-        );
+        Line line1 = new Line();
+        line1.setNumbers(new int[]{0,1,1});
+        Line line2 = new Line();
+        line2.setNumbers(new int[]{0,2,2});
+        List<Line> request = new ArrayList<>();
+        request.add(line1);
+        request.add(line2);
 
         Ticket ticket = new Ticket("1", request);
 
@@ -45,30 +44,35 @@ class LotteryControllerTest {
                 .isEqualTo(ticket);
     }
 
+    @Order(2)
     @Test
     void getAllTickets() {
-        Ticket ticket1 = new Ticket("1", List.of(
-                new Line(new int[]{0, 1, 1})));
-        Ticket ticket2 = new Ticket("2", List.of(
-                new Line(new int[]{2, 2, 2})));
+        Line line1 = new Line();
+        line1.setNumbers(new int[]{0,1,1});
+        Line line2 = new Line();
+        line2.setNumbers(new int[]{0,2,2});
 
-        when(lotteryService.getAllTickets()).thenReturn(Flux.just(ticket1, ticket2));
+        Ticket ticket = new Ticket("1", List.of(
+                line1, line2));
 
         webTestClient.get()
                 .uri("/v1/ticket")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(Ticket.class)
-                .hasSize(2)
-                .contains(ticket1, ticket2);
+                .hasSize(1)
+                .contains(ticket);
     }
 
+    @Order(3)
     @Test
     void getTicket() {
+        Line line1 = new Line();
+        line1.setNumbers(new int[]{0,1,1});
+        Line line2 = new Line();
+        line2.setNumbers(new int[]{0,2,2});
         Ticket ticket = new Ticket("1", List.of(
-                new Line(new int[]{0, 1, 1})));
-
-        when(lotteryService.getTicketById("1")).thenReturn(Mono.just(ticket));
+                line1, line2));
 
         webTestClient.get()
                 .uri("/v1/ticket/1")
@@ -78,17 +82,24 @@ class LotteryControllerTest {
                 .isEqualTo(ticket);
     }
 
+    @Order(4)
     @Test
     void amendTicket() {
-        List<Line> request = List.of(
-                new Line(new int[]{0, 1, 1}),
-                new Line(new int[]{0, 2, 2})
-        );
-        Ticket amendedTicket = new Ticket("1", List.of(
-                new Line(new int[]{0, 1, 1}),
-                new Line(new int[]{1, 1, 0})));
+        Line line1 = new Line();
+        line1.setNumbers(new int[]{0,1,1});
+        Line line2 = new Line();
+        line2.setNumbers(new int[]{0,2,2});
+        Line line3 = new Line();
+        line3.setNumbers(new int[]{1,1,0});
 
-        when(lotteryService.amendTicket("1", request)).thenReturn(Mono.just(amendedTicket));
+        List<Line> request = List.of(
+                line1,
+                line3);
+        Ticket amendedTicket = new Ticket("1", List.of(
+                line1,
+                line2,
+                line1,
+                line3));
 
         webTestClient.put()
                 .uri("/v1/ticket/1")
@@ -100,18 +111,17 @@ class LotteryControllerTest {
                 .isEqualTo(amendedTicket);
     }
 
+    @Order(5)
     @Test
     void checkTicketStatus() {
-        Ticket status = new Ticket("1", List.of(
-                new Line(new int[]{0, 1, 1})));
-
-        when(lotteryService.checkTicketStatus("1")).thenReturn(Mono.just(status));
-
         webTestClient.put()
-                .uri("/v1/status/1")
+                .uri("/v1/ticket/status/1")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Ticket.class)
-                .isEqualTo(status);
+                .consumeWith(response -> {
+                    Assertions.assertTrue(response.getResponseBody()
+                            .isChecked());
+                });
     }
 }
